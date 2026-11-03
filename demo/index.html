@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sample demo</title>
+<style>
+  body { margin:0; font-family:system-ui,sans-serif; background:#fafafa; }
+  header { position:sticky; top:0; background:#111; color:#fff; padding:14px 24px; }
+  main { max-width:760px; margin:0 auto; padding:24px; }
+  .card { background:#fff; border:1px solid #ddd; border-radius:12px; padding:20px; margin:20px 0; }
+  .cta { background:#16a34a; color:#fff; border:0; padding:12px 20px; border-radius:8px; font-size:16px; }
+  .tall { height:900px; background:linear-gradient(#fde68a,#a7f3d0); border-radius:12px; display:flex; align-items:center; justify-content:center; }
+</style>
+</head>
+<body>
+<header>Acme Demo</header>
+<main>
+  <h1>Quarterly dashboard</h1>
+  <div class="card" id="revenue"><h2>Revenue</h2><p>$1.2M, up 14% quarter over quarter.</p><button class="cta">Export report</button></div>
+  <div class="card"><h2>Churn</h2><p>2.1%, down from 2.6%.</p></div>
+  <div class="tall">Scroll target section</div>
+</main>
+<script src="http://localhost:3000/embed.js" data-project="YOUR_PROJECT_KEY" defer></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "pinpoint-server",
+  "version": "0.1.0",
+  "description": "Self-hosted feedback server, embeddable widget and dashboard for demos",
+  "type": "module",
+  "engines": { "node": ">=22.5" },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server.js",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js"
+  },
+  "dependencies": {},
+  "devDependencies": { "html-to-image": "^1.11.13" }
+}

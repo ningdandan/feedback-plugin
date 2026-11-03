@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pinpoint dashboard</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --line:#e2e5ea; --text:#14171c; --muted:#667085; --accent:#2563eb; --danger:#b91c1c; }
+  * { box-sizing: border-box; }
+  body { margin:0; font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--text); }
+  button, input, select, textarea { font:inherit; }
+  button { cursor:pointer; border:1px solid var(--line); background:var(--card); border-radius:8px; padding:6px 12px; color:var(--text); }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+  button.danger { color:var(--danger); }
+  input, select, textarea { border:1px solid var(--line); border-radius:8px; padding:7px 10px; background:#fff; color:var(--text); }
+  .hidden { display:none !important; }
+  .login { max-width:320px; margin:12vh auto; background:var(--card); padding:24px; border-radius:12px; border:1px solid var(--line); }
+  .login h1 { margin:0 0 14px; font-size:20px; }
+  .login input { width:100%; margin-bottom:10px; }
+  .err { color:var(--danger); font-size:13px; min-height:18px; }
+  .layout { display:grid; grid-template-columns:260px 1fr; min-height:100vh; }
+  aside { background:var(--card); border-right:1px solid var(--line); padding:16px; overflow:auto; }
+  aside h1 { font-size:18px; margin:0 0 12px; }
+  .proj { padding:8px 10px; border-radius:8px; cursor:pointer; display:flex; justify-content:space-between; gap:8px; }
+  .proj:hover { background:var(--bg); } .proj.active { background:#e8effd; font-weight:600; }
+  .badge { background:var(--accent); color:#fff; border-radius:999px; padding:0 7px; font-size:12px; min-width:20px; text-align:center; }
+  main { padding:20px 24px; min-width:0; }
+  .toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:16px; }
+  .toolbar input[type=search] { min-width:220px; }
+  .spacer { flex:1; }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:16px; }
+  .panel h2 { margin:0 0 8px; font-size:15px; }
+  pre { background:#0f172a; color:#e2e8f0; padding:10px 12px; border-radius:8px; overflow:auto; font-size:12.5px; margin:8px 0; white-space:pre-wrap; word-break:break-all; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; overflow:hidden; cursor:pointer; display:flex; flex-direction:column; }
+  .card:hover { border-color:var(--accent); }
+  .thumb { height:160px; background:#eef0f3 center/cover no-repeat; display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:13px; }
+  .thumb img { width:100%; height:100%; object-fit:cover; }
+  .card .body { padding:10px 12px; display:flex; flex-direction:column; gap:4px; }
+  .comment { display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; white-space:pre-wrap; }
+  .meta { color:var(--muted); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pill { display:inline-block; padding:1px 8px; border-radius:999px; font-size:11.5px; font-weight:600; background:#e5e7eb; }
+  .pill.new { background:#dbeafe; color:#1d4ed8; } .pill.acknowledged { background:#fef3c7; color:#92400e; } .pill.resolved { background:#dcfce7; color:#166534; }
+  .empty { color:var(--muted); padding:40px 0; text-align:center; }
+  .modal { position:fixed; inset:0; background:rgba(15,23,42,.6); display:flex; align-items:center; justify-content:center; padding:20px; z-index:10; }
+  .modal .sheet { background:var(--card); border-radius:14px; max-width:1000px; width:100%; max-height:92vh; overflow:auto; padding:18px 20px; }
+  .sheet .imgs { display:grid; grid-template-columns:2fr 1fr; gap:12px; margin:12px 0; }
+  .sheet img { width:100%; border:1px solid var(--line); border-radius:8px; display:block; }
+  .sheet dl { display:grid; grid-template-columns:110px 1fr; gap:4px 10px; margin:12px 0; font-size:13px; }
+  .sheet dt { color:var(--muted); } .sheet dd { margin:0; word-break:break-word; }
+  .sheet .big { white-space:pre-wrap; font-size:16px; margin:6px 0; }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  @media (max-width:800px) { .layout { grid-template-columns:1fr; } aside { border-right:0; border-bottom:1px solid var(--line); } .sheet .imgs { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+
+<div id="login" class="login hidden">
+  <h1>Pinpoint</h1>
+  <form id="loginForm">
+    <input type="password" id="pw" placeholder="Admin password" autocomplete="current-password" autofocus>
+    <button class="primary" style="width:100%">Sign in</button>
+    <div class="err" id="loginErr"></div>
+  </form>
+</div>
+
+<div id="app" class="layout hidden">
+  <aside>
+    <h1>Pinpoint</h1>
+    <div class="proj" id="allProj" data-id=""><span>All projects</span></div>
+    <div id="projList"></div>
+    <div style="margin-top:14px" class="row">
+      <button id="newProj" class="primary">+ New project</button>
+      <button id="logout">Sign out</button>
+    </div>
+  </aside>
+  <main>
+    <div id="projPanel" class="panel hidden"></div>
+    <div class="toolbar">
+      <input type="search" id="search" placeholder="Search comment, name, page">
+      <select id="status">
+        <option value="">Active (not archived)</option>
+        <option value="new">New</option>
+        <option value="acknowledged">Acknowledged</option>
+        <option value="resolved">Resolved</option>
+        <option value="archived">Archived</option>
+      </select>
+      <span class="spacer"></span>
+      <a id="csv" href="#"><button>Export CSV</button></a>
+    </div>
+    <div id="feed" class="grid"></div>
+  </main>
+</div>
+
+<div id="modal" class="modal hidden"></div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const state = { project: '', projects: [], items: [] };
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    credentials: 'same-origin',
+    ...opts,
+    headers: opts.body ? { 'Content-Type': 'application/json' } : undefined,
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  });
+  if (res.status === 401 && path !== '/api/login') { showLogin(); throw new Error('Not logged in'); }
+  const data = res.headers.get('content-type')?.includes('json') ? await res.json() : null;
+  if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
+  return data;
+}
+
+// Build DOM with textContent only, so submitted text can never inject markup.
+function h(tag, props = {}, ...kids) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)) {
+    if (k === 'class') n.className = v;
+    else if (k === 'text') n.textContent = v;
+    else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
+    else if (v !== false && v != null) n.setAttribute(k, v);
+  }
+  for (const kid of kids.flat()) if (kid != null) n.append(kid);
+  return n;
+}
+const when = (t) => new Date(t).toLocaleString();
+const safeHref = (u) => (/^https?:\/\//i.test(u) ? u : null);
+
+function showLogin() { $('#app').classList.add('hidden'); $('#login').classList.remove('hidden'); }
+async function showApp() {
+  $('#login').classList.add('hidden'); $('#app').classList.remove('hidden');
+  await loadProjects(); await loadFeed();
+}
+
+$('#loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  try { await api('/api/login', { method: 'POST', body: { password: $('#pw').value } }); $('#pw').value = ''; $('#loginErr').textContent = ''; await showApp(); }
+  catch (er) { $('#loginErr').textContent = er.message; }
+});
+$('#logout').addEventListener('click', async () => { await api('/api/logout', { method: 'POST', body: {} }); showLogin(); });
+
+async function loadProjects() {
+  state.projects = await api('/api/projects');
+  const list = $('#projList'); list.replaceChildren();
+  $('#allProj').classList.toggle('active', !state.project);
+  for (const p of state.projects) {
+    list.append(h('div', { class: 'proj' + (state.project === p.id ? ' active' : ''), onclick: () => { state.project = p.id; refresh(); } },
+      h('span', { text: p.name }), p.new_count ? h('span', { class: 'badge', text: p.new_count }) : null));
+  }
+  renderProjectPanel();
+}
+$('#allProj').addEventListener('click', () => { state.project = ''; refresh(); });
+
+function renderProjectPanel() {
+  const panel = $('#projPanel');
+  const p = state.projects.find((x) => x.id === state.project);
+  panel.classList.toggle('hidden', !p);
+  if (!p) return;
+  const snippet = `<script src="${location.origin}/embed.js" data-project="${p.public_key}" defer><\/script>`;
+  const origins = h('input', { value: p.allowed_origins.join(', '), style: 'width:100%', 'aria-label': 'Allowed origins' });
+  const copyBtn = h('button', { text: 'Copy', onclick: async () => { await navigator.clipboard.writeText(snippet); copyBtn.textContent = 'Copied'; setTimeout(() => (copyBtn.textContent = 'Copy'), 1500); } });
+  panel.replaceChildren(
+    h('div', { class: 'row' }, h('h2', { text: p.name, style: 'margin:0' }), h('span', { class: 'spacer' }),
+      h('button', { text: 'Rename', onclick: async () => { const n = prompt('Project name', p.name); if (n?.trim()) { await api(`/api/projects/${p.id}`, { method: 'PATCH', body: { name: n } }); await loadProjects(); } } }),
+      h('button', { class: 'danger', text: 'Delete project', onclick: async () => { if (confirm(`Delete "${p.name}" and all its feedback? This cannot be undone.`)) { await api(`/api/projects/${p.id}`, { method: 'DELETE' }); state.project = ''; await refresh(); } } })),
+    h('div', { class: 'meta', text: 'Paste this before </body> in your demo:' }),
+    h('pre', { text: snippet }), copyBtn,
+    h('div', { class: 'meta', style: 'margin-top:12px', text: 'Allowed origins (comma separated, e.g. https://you.github.io). Use * to allow any site.' }),
+    h('div', { class: 'row', style: 'margin-top:4px' }, origins,
+      h('button', { text: 'Save', onclick: async (ev) => { await api(`/api/projects/${p.id}`, { method: 'PATCH', body: { allowed_origins: origins.value } }); ev.target.textContent = 'Saved'; await loadProjects(); } })));
+}
+
+function query() {
+  const qs = new URLSearchParams();
+  if (state.project) qs.set('project', state.project);
+  if ($('#status').value) qs.set('status', $('#status').value);
+  if ($('#search').value.trim()) qs.set('q', $('#search').value.trim());
+  return qs.toString();
+}
+
+async function loadFeed() {
+  const qs = query();
+  $('#csv').href = '/api/feedback.csv' + (qs ? '?' + qs : '');
+  state.items = await api('/api/feedback' + (qs ? '?' + qs : ''));
+  const feed = $('#feed'); feed.replaceChildren();
+  if (!state.items.length) { feed.append(h('div', { class: 'empty', text: 'No feedback yet.' })); return; }
+  for (const f of state.items) {
+    feed.append(h('div', { class: 'card', onclick: () => openItem(f) },
+      h('div', { class: 'thumb' }, f.crop_image || f.full_image ? h('img', { src: f.crop_image || f.full_image, alt: 'Screenshot', loading: 'lazy' }) : 'No screenshot'),
+      h('div', { class: 'body' },
+        h('div', { class: 'row' }, h('strong', { text: f.name }), h('span', { class: 'pill ' + f.status, text: f.status })),
+        h('div', { class: 'comment', text: f.comment }),
+        h('div', { class: 'meta', text: `${f.project_name} · ${f.page_url || ''}` }),
+        h('div', { class: 'meta', text: when(f.created_at) }))));
+  }
+}
+async function refresh() { await loadProjects(); await loadFeed(); }
+
+function close() { $('#modal').classList.add('hidden'); $('#modal').replaceChildren(); }
+$('#modal').addEventListener('click', (e) => { if (e.target.id === 'modal') close(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+
+function openItem(f) {
+  const link = safeHref(f.page_url);
+  const sel = h('select', { 'aria-label': 'Status', onchange: async (e) => { await api(`/api/feedback/${f.id}`, { method: 'PATCH', body: { status: e.target.value } }); await refresh(); } },
+    ['new', 'acknowledged', 'resolved', 'archived'].map((s) => h('option', { value: s, text: s, selected: s === f.status })));
+  const dl = [['Page', link ? h('a', { href: link, target: '_blank', rel: 'noopener noreferrer', text: f.page_url }) : f.page_url || '—'],
+    ['Page title', f.page_title || '—'], ['Element', f.selector || '—'],
+    ['Viewport', f.viewport ? `${f.viewport.w}×${f.viewport.h}` : '—'], ['Scroll', f.scroll ? `${f.scroll.x}, ${f.scroll.y}` : '—'],
+    ['Browser', f.user_agent || '—'], ['Project', f.project_name], ['Sent', when(f.created_at)]];
+  $('#modal').replaceChildren(h('div', { class: 'sheet' },
+    h('div', { class: 'row' }, h('h2', { text: f.name, style: 'margin:0' }), h('span', { class: 'spacer' }), sel,
+      h('button', { class: 'danger', text: 'Delete', onclick: async () => { if (confirm('Delete this feedback and its screenshots?')) { await api(`/api/feedback/${f.id}`, { method: 'DELETE' }); close(); await refresh(); } } }),
+      h('button', { text: 'Close', onclick: close })),
+    h('div', { class: 'big', text: f.comment }),
+    f.full_image ? h('div', { class: 'imgs' }, h('a', { href: f.full_image, target: '_blank' }, h('img', { src: f.full_image, alt: 'Full screenshot' })), f.crop_image ? h('img', { src: f.crop_image, alt: 'Highlighted area' }) : null) : h('div', { class: 'meta', text: 'No screenshot was captured for this item.' }),
+    h('dl', {}, dl.flatMap(([k, v]) => [h('dt', { text: k }), h('dd', {}, v)]))));
+  $('#modal').classList.remove('hidden');
+}
+
+$('#newProj').addEventListener('click', async () => {
+  const name = prompt('Project (demo) name'); if (!name?.trim()) return;
+  const p = await api('/api/projects', { method: 'POST', body: { name } });
+  state.project = p.id; await refresh();
+});
+let t; $('#search').addEventListener('input', () => { clearTimeout(t); t = setTimeout(loadFeed, 250); });
+$('#status').addEventListener('change', loadFeed);
+
+api('/api/session').then(showApp, showLogin);
+</script>
+</body>
+</html>
